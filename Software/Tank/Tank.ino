@@ -1,4 +1,6 @@
 #include <PS2X_lib.h>
+#include <Servo.h>
+
 #define PS2_DAT        51 // MOSI   
 #define PS2_CMD        50 // MISO
 #define PS2_SEL        53 
@@ -17,25 +19,29 @@
 #define RIGHT_WHEEL_FORWARD 4
 #define RIGHT_WHEEL_BACKWARD 5
 
-#define LEFT_ROLLER_FIRE
-#define LEFT_ROLLER_RELOAD
-#define RIGHT_ROLLER_FIRE
-#define RIGHT_ROLLER_RELOAD
+#define LOADER_PUSH 6
+#define LOADER_PULL 7
 
-#define ARM
+#define LEFT_ROLLER_FIRE 8
+#define LEFT_ROLLER_RELOAD 9
+#define RIGHT_ROLLER_FIRE 10
+#define RIGHT_ROLLER_RELOAD 11
+
+#define ARM_PIN 12
 
 #define INTAKE_FAN_DRAW
 #define INTAKE_FAN_BLOW
 
-#define LOADER_PUSH
-#define LOADER_PULL
-
 #define LOADER_FAN_DRAW
 #define LOADER_FAN_BLOW
 
-#define STICK_THRESHOLD 100
+#define SPREAD_POSITION 0
+#define FOLD_POSITION 105
+
+#define STICK_THRESHOLD 50
 
 PS2X ps2x;
+Servo arm;
 
 int error = 0;
 byte type = 0;
@@ -95,11 +101,13 @@ void loop() {
     }
 
     if(ps2x.Button(PSB_TRIANGLE)) {
-      Serial.println("HAND UP");
+      arm.write(FOLD_POSITION);
+      Serial.println("FOLD UP");
     }
 
     if(ps2x.Button(PSB_CROSS)) {
-      Serial.println("HAND DOWN");
+      arm.write(SPREAD_POSITION);
+      Serial.println("SPREAD OUT");
     }
 
     if(ps2x.Button(PSB_SQUARE)) {
@@ -115,19 +123,19 @@ void loop() {
     LY = ps2x.Analog(PSS_LY);
     RX = ps2x.Analog(PSS_RX);
     
-    mappedLY = map(LY, 0, 255, 250, -250);
-    mappedRX = map(RX, 0, 255, -250, 250);
-
-    if (abs(mappedLY) < STICK_THRESHOLD)
-      mappedLY = 0;
-    if (abs(mappedRX) < STICK_THRESHOLD)
-      mappedRX = 0;
+    mappedLY = map(LY, 0, 255, 254, -254);
+    mappedRX = map(RX, 0, 255, -254, 254);
 
     leftSpeed = mappedLY + mappedRX;
     rightSpeed = mappedLY - mappedRX;
 
-    leftSpeed = constrain(leftSpeed, -250, 250);
-    rightSpeed = constrain(rightSpeed, -250, 250);
+    leftSpeed = constrain(leftSpeed, -254, 254);
+    rightSpeed = constrain(rightSpeed, -254, 254);
+
+    if (abs(leftSpeed) < STICK_THRESHOLD)
+      leftSpeed = 0;
+    if (abs(rightSpeed) < STICK_THRESHOLD)
+      rightSpeed = 0;
 
     Serial.print(leftSpeed);
     Serial.print(' ');
@@ -142,6 +150,8 @@ void configPinout() {
   pinMode(LEFT_WHEEL_BACKWARD, OUTPUT);
   pinMode(RIGHT_WHEEL_FORWARD, OUTPUT);
   pinMode(RIGHT_WHEEL_BACKWARD, OUTPUT);
+
+  arm.attach(ARM_PIN);
 }
 
 int configController() {
